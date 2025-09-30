@@ -1,18 +1,21 @@
-// Import paket yang diperlukan
 const express = require("express");
 const mysql = require("mysql2/promise"); // Menggunakan versi promise
 const cors = require("cors");
+const midtransClient = require("midtrans-client");
 require("dotenv").config();
 
-// Inisialisasi aplikasi Express
 const app = express();
 const port = 3000;
 
-// Middleware
 app.use(cors());
-app.use(express.json()); // Untuk parsing data JSON dari body request
+app.use(express.json());
 
-// Konfigurasi koneksi database
+let snap = new midtransClient.Snap({
+  isProduction: process.env.NODE_ENV === "production",
+  serverKey: process.env.MIDTRANS_SERVER_KEY, // Ganti dengan Server Key Anda
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
+});
+
 const db = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
@@ -23,12 +26,7 @@ const db = mysql.createPool({
   queueLimit: 0,
 });
 
-// Serving file statis
-app.use(express.static("../")); // Menjadikan folder root 'Web Rental Outdoor' sebagai folder statis
-
-// ------------------------------------
-//          API ENDPOINTS
-// ------------------------------------
+app.use(express.static("../"));
 
 // 1. Endpoint untuk mendapatkan semua produk
 app.get("/api/products", async (req, res) => {
@@ -73,11 +71,9 @@ app.post("/api/cart/add", async (req, res) => {
     }
   } catch (err) {
     console.error("Error saat menambahkan produk:", err);
-    res
-      .status(500)
-      .json({
-        error: "Terjadi kesalahan saat menambahkan produk ke keranjang.",
-      });
+    res.status(500).json({
+      error: "Terjadi kesalahan saat menambahkan produk ke keranjang.",
+    });
   }
 });
 
@@ -140,59 +136,115 @@ app.get("/api/cart", async (req, res) => {
   }
 });
 
-// 6. Endpoint untuk proses checkout
-app.post("/api/checkout", async (req, res) => {
+// 6. Endpoint untuk proses order
+app.post("/api/process-order", async (req, res) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
-    const [cartItems] = await connection.query(
-      "SELECT product_id, quantity FROM cart_items"
-    );
+    // 1. Ambil item dari keranjang & hitung total di backend
+    const [cartItems] = await connection.query(`
+            SELECT p.id, p.name, p.price, ci.quantity 
+            FROM cart_items ci JOIN products p ON ci.product_id = p.id
+        `);
 
     if (cartItems.length === 0) {
-      await connection.rollback();
-      return res.status(400).json({ error: "Keranjang belanja kosong." });
+      return res.status(400).json({ error: "Keranjang kosong." });
     }
 
-    for (const item of cartItems) {
-      const [product] = await connection.query(
-        "SELECT name, stock FROM products WHERE id = ?",
-        [item.product_id]
-      );
+    let totalAmount = 0;
+    cartItems.forEach((item) => {
+      totalAmount += item.price * item.quantity;
+    });
 
-      if (product.length === 0 || product[0].stock < item.quantity) {
-        await connection.rollback();
-        const productName =
-          product.length > 0 ? product[0].name : "tidak dikenal";
-        return res
-          .status(400)
-          .json({
-            error: `Stok untuk produk '${productName}' tidak mencukupi.`,
-          });
-      }
+    // 2. Buat Order ID unik di backend
+    const orderId = "GO-RENTAL-" + Date.now();
+    const { customerName, customerEmail, userId } = req.body;
 
-      await connection.query(
-        "UPDATE products SET stock = stock - ? WHERE id = ?",
-        [item.quantity, item.product_id]
-      );
-    }
+    // 3. Simpan pesanan ke tabel `orders` dengan status 'pending'
+    const [orderResult] = await connection.query(
+      // Tambahkan user_id di sini
+      "INSERT INTO orders (user_id, order_id, total_amount, status, customer_name, customer_email) VALUES (?, ?, ?, ?, ?, ?)",
+      // Tambahkan userId ke dalam array values
+      [userId, orderId, totalAmount, "pending", customerName, customerEmail]
+    );
+    const newOrderId = orderResult.insertId;
 
-    await connection.query("DELETE FROM cart_items");
+    // 4. Buat parameter untuk Midtrans
+    let parameter = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: totalAmount,
+      },
+      customer_details: {
+        first_name: customerName,
+        email: customerEmail,
+      },
+    };
+
+    // 5. Buat transaksi Midtrans
+    const transaction = await snap.createTransaction(parameter);
+    let transactionToken = transaction.token;
+
     await connection.commit();
-    res
-      .status(200)
-      .json({
-        message: "Checkout berhasil! Keranjang belanja Anda telah dikosongkan.",
-      });
+    res.json({ token: transactionToken, orderId: orderId });
   } catch (error) {
     await connection.rollback();
-    console.error("Terjadi kesalahan saat checkout:", error);
-    res
-      .status(500)
-      .json({ error: "Terjadi kesalahan saat memproses checkout." });
+    console.error("Error saat proses order:", error);
+    res.status(500).json({ error: "Gagal memproses pesanan." });
   } finally {
     connection.release();
+  }
+});
+
+// APi webhook
+app.post("/api/midtrans-notification", async (req, res) => {
+  try {
+    // Gunakan fungsi notifikasi dari library midtrans-client untuk verifikasi
+    const statusResponse = await snap.transaction.notification(req.body);
+    let orderId = statusResponse.order_id;
+    let transactionStatus = statusResponse.transaction_status;
+    let fraudStatus = statusResponse.fraud_status;
+
+    console.log(
+      `Notifikasi untuk Order ID ${orderId}: Transaction status: ${transactionStatus}, Fraud status: ${fraudStatus}`
+    );
+
+    // Logic untuk update database
+    if (transactionStatus == "settlement" || transactionStatus == "capture") {
+      if (fraudStatus == "accept") {
+        // Pembayaran berhasil.
+        // TODO 1: Update status di tabel `orders` menjadi 'paid'.
+        // TODO 2: Ambil item dari pesanan (perlu tabel order_items).
+        // TODO 3: Kurangi stok produk di tabel `products`.
+        // TODO 4: Kosongkan keranjang belanja pengguna.
+        await db.query("UPDATE orders SET status = ? WHERE order_id = ?", [
+          "paid",
+          orderId,
+        ]);
+        console.log(`Pembayaran untuk order ${orderId} berhasil.`);
+      }
+    } else if (transactionStatus == "pending") {
+      // Pembayaran masih pending (misal: transfer bank belum dibayar).
+      // Anda bisa mengabaikan atau mencatat log.
+    } else if (
+      transactionStatus == "deny" ||
+      transactionStatus == "expire" ||
+      transactionStatus == "cancel"
+    ) {
+      // Pembayaran gagal.
+      // TODO: Update status di tabel `orders` menjadi 'failed' atau 'expired'.
+      await db.query("UPDATE orders SET status = ? WHERE order_id = ?", [
+        "failed",
+        orderId,
+      ]);
+    }
+
+    // Beri respons 200 OK agar Midtrans tidak mengirim notifikasi berulang kali
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("Error saat menangani notifikasi Midtrans:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 

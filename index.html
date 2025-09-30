@@ -3,79 +3,103 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GO Outdoor</title>
-    <!-- font -->
+    <script
+      type="text/javascript"
+      src="https://app.sandbox.midtrans.com/snap/snap.js"
+      data-client-key="Mid-client-CyvycMikxkL4YzXJ"
+    ></script>
+    <title>Rental - Go Outdoor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <!-- icons -->
     <script src="https://unpkg.com/feather-icons"></script>
     <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
     <!-- navbar -->
-    <nav class="navbar">
+    <nav class="navbar-rental">
       <a href="#" class="navbar-logo">Go Outdoor</a>
 
       <div class="navbar-nav">
-        <a href="#">Home</a>
         <a href="about.html">About</a>
-        <a href="rental.html">Rental</a>
-        <a href="tes.html">Contact</a>
+        <a href="#">Rental</a>
+        <a href="contact.html">Contact</a>
       </div>
 
       <div class="navbar-extra">
-        <a href="#" id="search"><i data-feather="search"></i></a>
-        <a href="#" id="shopping-cart"><i data-feather="shopping-cart"></i></a>
+        <a href="#" id="shoping-cart"><i data-feather="shopping-cart"></i></a>
         <a href="#" id="hamburger-menu"><i data-feather="menu"></i></a>
       </div>
+
+      <!-- shooping cart start -->
+      <div class="shoping-cart">
+        <div class="cart-header">
+          <h1>Keranjang</h1>
+          <span class="close-cart-btn">&times;</span>
+        </div>
+        <div class="cart-items-container">
+          <div class="cart-item-placeholder">Keranjang kosong.</div>
+        </div>
+        <div class="cart-summary">
+          <div
+            class="days-control"
+            style="
+              margin-bottom: 0.1rem;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <label for="rent-days" style="font-weight: 600; font-size: 1rem"
+              >Jumlah Hari Sewa:</label
+            >
+            <input
+              type="number"
+              id="rent-days"
+              value="1"
+              min="1"
+              style="
+                width: 60px;
+                padding: 0.5rem;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                text-align: center;
+                font-size: 1rem;
+              "
+            />
+          </div>
+          <h2>Total: <span id="total-price">Rp 0</span></h2>
+          <!-- <button class="btn-payment" id="btn-payment">Payment</button> -->
+          <button class="btn-checkout" id="checkout-button">Checkout</button>
+        </div>
+      </div>
+      <!-- shooping cart end -->
     </nav>
     <!-- end navbar -->
 
-    <!-- hero sections -->
-    <section class="hero" id="home">
-      <main class="content">
-        <h1>GO HIking</h1>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolor,
-          iusto.
-        </p>
-        <a href="#" class="cta">Beli sekarang</a>
-      </main>
-    </section>
-    <!-- end hero  -->
-
-    <!-- about start -->
-    <section id="about" class="about">
-      <h2>About <span>US</span></h2>
-      <div class="row">
-        <div class="about-img">
-          <img src="/img/aboutbg.jpg" alt="Tentang kami" />
-        </div>
-        <div class="content">
-          <h3>Kenapa di rental kami?</h3>
-          <p>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore,
-            facilis.
-          </p>
-          <p>
-            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Fuga
-            reprehenderit totam ex harum veritatis quam.
-          </p>
-        </div>
+    <!-- section produk -->
+    <section class="produk">
+      <div class="produk-container">
+        <!-- <div class="card">
+          <img src="img/arei Kinabalu.jpeg" alt="Arei kinabalu 50+5 L" />
+          <h3>Arei kinabalu 50+5 L</h3>
+          <p class="harga">Rp 50.000 / hari</p>
+          <div class="card-action">
+            <input type="number" min="0" value="0" class="qty" />
+            <button class="btn-cart">Add to cart</button>
+          </div>
+        </div> -->
       </div>
     </section>
-    <!-- about end -->
 
-    <!-- icons -->
+    <!-- feather icons -->
+    <script src="script.js"></script>
     <script>
       feather.replace();
     </script>
-
-    <script src="/backend/script.js"></script>
   </body>
 </html>
