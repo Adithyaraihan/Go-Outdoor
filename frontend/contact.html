@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact - Go Outdoor</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/feather-icons"></script>
+  </head>
+
+  <body>
+    <nav class="navbar-rental">
+      <a href="index.html" class="navbar-logo">Go Outdoor</a>
+
+      <div class="navbar-nav">
+        <a href="about.html">About</a>
+        <a href="index.html">Rental</a>
+        <a href="contact.html" class="active">Contact</a>
+      </div>
+
+      <div class="navbar-extra">
+        <a href="#" id="shoping-cart"
+          ><i
+            data-feather="shopping-cart"
+            style="color: transparent; cursor: default"
+          ></i
+        ></a>
+        <a href="#" id="hamburger-menu"><i data-feather="menu"></i></a>
+      </div>
+    </nav>
+
+    <div class="overlay"></div>
+
+    <div class="contact-container">
+      <h1>Contact Us</h1>
+
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63374.411786456876!2d107.59413026425807!3d-6.902473185981012!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e64c5e8866e5%3A0x37be7ac9d575f7ed!2sGedung%20Sate!5e0!3m2!1sen!2sid!4v1758422724670!5m2!1sen!2sid"
+        width="600"
+        height="450"
+        style="border: 0"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+      ></iframe>
+
+      <p>
+        Jika Anda memiliki pertanyaan, saran, atau ingin berkolaborasi, jangan
+        ragu untuk menghubungi kami.
+      </p>
+
+      <!-- section login start -->
+
+      <!-- section login end-->
+
+      <!-- section form -->
+      <form action="#" method="post" class="contact-form">
+        <div class="form-group">
+          <label for="name">Nama Anda:</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Anda:</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="message">Pesan Anda:</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">Kirim Pesan</button>
+      </form>
+      <div class="social-links">
+        <a href="#"><i data-feather="instagram"></i></a>
+        <a href="#"><i data-feather="twitter"></i></a>
+        <a href="#"><i data-feather="facebook"></i></a>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2025 Go Outdoor. Semua Hak Cipta Dilindungi.</p>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+      feather.replace();
+    </script>
+  </body>
+</html>

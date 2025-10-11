@@ -1,18 +1,40 @@
-const express = require("express");
-const mysql = require("mysql2/promise"); // Menggunakan versi promise
-const cors = require("cors");
-const midtransClient = require("midtrans-client");
 require("dotenv").config();
+const express = require("express");
+const mysql = require("mysql2/promise");
+const cors = require("cors");
+const path = require("path");
+const session = require("express-session");
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const LocalStrategy = require("passport-local").Strategy;
+const bcrypt = require("bcryptjs");
+const midtransClient = require("midtrans-client");
+const createAuthRoutes = require("./authRoutes");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+app.use(
+  session({
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }, //ubah jika udah HTTPS
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 
 let snap = new midtransClient.Snap({
-  isProduction: process.env.NODE_ENV === "production",
-  serverKey: process.env.MIDTRANS_SERVER_KEY, // Ganti dengan Server Key Anda
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
@@ -20,15 +42,121 @@ const db = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "go_outdoor_rental",
+  database: process.env.DB_NAME || "go_outdoor",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
 
-app.use(express.static("../"));
 
-// 1. Endpoint untuk mendapatkan semua produk
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: `${process.env.BASE_URL}/auth/google/callback`,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      const email = profile.emails[0].value;
+      const fullname = profile.displayName;
+      const googleId = profile.id;
+      try {
+        const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
+          email,
+        ]);
+        if (users.length > 0) {
+          const user = users[0];
+          if (!user.google_id) {
+            await db.query(
+              "UPDATE users SET google_id = ?, is_verified = TRUE WHERE email = ?",
+              [googleId, email]
+            );
+          }
+          return done(null, user);
+        } else {
+          const newUser = {
+            fullname,
+            email,
+            google_id: googleId,
+            is_verified: true,
+          };
+          const [result] = await db.query("INSERT INTO users SET ?", newUser);
+          newUser.id = result.insertId;
+          return done(null, newUser);
+        }
+      } catch (err) {
+        return done(err);
+      }
+    }
+  )
+);
+
+// login lokal
+passport.use(
+  new LocalStrategy(
+    { usernameField: "identifier" },
+    async (identifier, password, done) => {
+      try {
+        const [users] = await db.query(
+          "SELECT * FROM users WHERE email = ? OR fullname = ?",
+          [identifier, identifier]
+        );
+        if (users.length === 0) {
+          return done(null, false, {
+            message: "Username atau email tidak ditemukan.",
+          });
+        }
+        const user = users[0];
+        if (!user.password && user.google_id) {
+          return done(null, false, {
+            message:
+              "Akun ini terdaftar via Google. Silakan login dengan Google.",
+          });
+        }
+        if (!user.is_verified) {
+          return done(null, false, {
+            message: "Akun Anda belum diverifikasi. Silakan cek email.",
+          });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Password salah." });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    }
+  )
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const [users] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
+    done(null, users.length > 0 ? users[0] : false);
+  } catch (err) {
+    done(err, null);
+  }
+});
+
+// Middleware untuk melindungi path yang memerlukan login
+const ensureAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res
+    .status(401)
+    .json({ error: "Akses ditolak. Anda harus login terlebih dahulu." });
+};
+
+const authRoutes = createAuthRoutes(db, passport);
+app.use("/auth", authRoutes);
+
+// === ENDPOINT PRODUK ===
 app.get("/api/products", async (req, res) => {
   try {
     const [results] = await db.query("SELECT * FROM products");
@@ -39,94 +167,15 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-// 2. Endpoint untuk menambahkan produk ke keranjang
-app.post("/api/cart/add", async (req, res) => {
-  const { productId, quantity } = req.body;
-
-  if (quantity <= 0) {
-    return res.status(400).json({ error: "Kuantitas harus lebih dari 0." });
-  }
-
-  try {
-    const [results] = await db.query(
-      "SELECT * FROM cart_items WHERE product_id = ?",
-      [productId]
-    );
-    if (results.length > 0) {
-      await db.query(
-        "UPDATE cart_items SET quantity = quantity + ? WHERE product_id = ?",
-        [quantity, productId]
-      );
-      res
-        .status(200)
-        .json({ message: "Kuantitas produk berhasil diperbarui." });
-    } else {
-      await db.query(
-        "INSERT INTO cart_items (product_id, quantity) VALUES (?, ?)",
-        [productId, quantity]
-      );
-      res
-        .status(201)
-        .json({ message: "Produk berhasil ditambahkan ke keranjang." });
-    }
-  } catch (err) {
-    console.error("Error saat menambahkan produk:", err);
-    res.status(500).json({
-      error: "Terjadi kesalahan saat menambahkan produk ke keranjang.",
-    });
-  }
-});
-
-// 3. Endpoint untuk memperbarui kuantitas item di keranjang
-app.put("/api/cart/update", async (req, res) => {
-  const { cartId, newQuantity } = req.body;
-
-  try {
-    if (newQuantity <= 0) {
-      await db.query("DELETE FROM cart_items WHERE id = ?", [cartId]);
-      res
-        .status(200)
-        .json({ message: "Item berhasil dihapus dari keranjang." });
-    } else {
-      await db.query("UPDATE cart_items SET quantity = ? WHERE id = ?", [
-        newQuantity,
-        cartId,
-      ]);
-      res.status(200).json({ message: "Kuantitas berhasil diperbarui." });
-    }
-  } catch (err) {
-    console.error("Error saat memperbarui kuantitas:", err);
-    res.status(500).json({ error: "Gagal memperbarui kuantitas item." });
-  }
-});
-
-// 4. Endpoint untuk menghapus item dari keranjang
-app.delete("/api/cart/delete/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    await db.query("DELETE FROM cart_items WHERE id = ?", [id]);
-    res.status(200).json({ message: "Item berhasil dihapus dari keranjang." });
-  } catch (err) {
-    console.error("Error saat menghapus item:", err);
-    res.status(500).json({ error: "Gagal menghapus item dari keranjang." });
-  }
-});
-
-// 5. Endpoint untuk mendapatkan semua item di keranjang
-app.get("/api/cart", async (req, res) => {
+// === ENDPOINT KERANJANG===
+app.get("/api/cart", ensureAuthenticated, async (req, res) => {
+  const userId = req.user.id;
   const sql = `
-        SELECT
-            ci.id AS cartId,
-            ci.quantity,
-            p.name,
-            p.price,
-            p.image,
-            p.stock
-        FROM cart_items ci
-        JOIN products p ON ci.product_id = p.id
-    `;
+        SELECT ci.id AS cartId, ci.quantity, p.name, p.price, p.image, p.stock
+        FROM cart_items ci JOIN products p ON ci.product_id = p.id
+        WHERE ci.user_id = ?`;
   try {
-    const [results] = await db.query(sql);
+    const [results] = await db.query(sql, [userId]);
     res.json(results);
   } catch (err) {
     console.error("Error saat mengambil item keranjang:", err);
@@ -136,20 +185,86 @@ app.get("/api/cart", async (req, res) => {
   }
 });
 
-// 6. Endpoint untuk proses order
-app.post("/api/process-order", async (req, res) => {
+// === ENDPOINT MENAMBAHKAN ITEM  KE KERANJANG ===
+app.post("/api/cart/add", ensureAuthenticated, async (req, res) => {
+  const { productId, quantity } = req.body;
+  const userId = req.user.id;
+  try {
+    const [results] = await db.query(
+      "SELECT * FROM cart_items WHERE product_id = ? AND user_id = ?",
+      [productId, userId]
+    );
+    if (results.length > 0) {
+      await db.query(
+        "UPDATE cart_items SET quantity = quantity + ? WHERE product_id = ? AND user_id = ?",
+        [quantity, productId, userId]
+      );
+      res
+        .status(200)
+        .json({ message: "Kuantitas produk berhasil diperbarui." });
+    } else {
+      await db.query(
+        "INSERT INTO cart_items (product_id, quantity, user_id) VALUES (?, ?, ?)",
+        [productId, quantity, userId]
+      );
+      res
+        .status(201)
+        .json({ message: "Produk berhasil ditambahkan ke keranjang." });
+    }
+  } catch (err) {
+    console.error("Error saat menambahkan produk:", err);
+    res
+      .status(500)
+      .json({ error: "Terjadi kesalahan saat menambahkan produk." });
+  }
+});
+
+// === ENDPOINT UPDATE KERANJANG===
+app.put("/api/cart/update", ensureAuthenticated, async (req, res) => {
+  const { cartId, newQuantity } = req.body;
+  const userId = req.user.id;
+  try {
+    if (newQuantity <= 0) {
+      await db.query("DELETE FROM cart_items WHERE id = ? AND user_id = ?", [
+        cartId,
+        userId,
+      ]);
+      res
+        .status(200)
+        .json({ message: "Item berhasil dihapus dari keranjang." });
+    } else {
+      await db.query(
+        "UPDATE cart_items SET quantity = ? WHERE id = ? AND user_id = ?",
+        [newQuantity, cartId, userId]
+      );
+      res.status(200).json({ message: "Kuantitas berhasil diperbarui." });
+    }
+  } catch (err) {
+    console.error("Error saat memperbarui kuantitas:", err);
+    res.status(500).json({ error: "Gagal memperbarui kuantitas item." });
+  }
+});
+
+// === ENDPOINTS PESANAN (UNTUK MENGIRIM KE MIDTRANS) ===
+app.post("/api/process-order", ensureAuthenticated, async (req, res) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
-    // 1. Ambil item dari keranjang & hitung total di backend
-    const [cartItems] = await connection.query(`
-            SELECT p.id, p.name, p.price, ci.quantity 
-            FROM cart_items ci JOIN products p ON ci.product_id = p.id
-        `);
+    const userId = req.user.id;
+    const { customerName, customerEmail, rentDays } = req.body;
+
+    const [cartItems] = await connection.query(
+      `SELECT p.id, p.name, p.price, ci.quantity 
+       FROM cart_items ci 
+       JOIN products p ON ci.product_id = p.id 
+       WHERE ci.user_id = ?`,
+      [userId]
+    );
 
     if (cartItems.length === 0) {
-      return res.status(400).json({ error: "Keranjang kosong." });
+      await connection.rollback();
+      return res.status(400).json({ error: "Keranjang Anda kosong." });
     }
 
     let totalAmount = 0;
@@ -157,37 +272,60 @@ app.post("/api/process-order", async (req, res) => {
       totalAmount += item.price * item.quantity;
     });
 
-    // 2. Buat Order ID unik di backend
     const orderId = "GO-RENTAL-" + Date.now();
-    const { customerName, customerEmail, userId } = req.body;
-
-    // 3. Simpan pesanan ke tabel `orders` dengan status 'pending'
     const [orderResult] = await connection.query(
-      // Tambahkan user_id di sini
-      "INSERT INTO orders (user_id, order_id, total_amount, status, customer_name, customer_email) VALUES (?, ?, ?, ?, ?, ?)",
-      // Tambahkan userId ke dalam array values
-      [userId, orderId, totalAmount, "pending", customerName, customerEmail]
+      "INSERT INTO orders (user_id, order_id, total_amount, status, customer_name, customer_email, rent_days) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        userId,
+        orderId,
+        totalAmount,
+        "pending",
+        customerName,
+        customerEmail,
+        rentDays,
+      ]
     );
     const newOrderId = orderResult.insertId;
 
-    // 4. Buat parameter untuk Midtrans
+    const orderItemsQueries = cartItems.map((item) =>
+      connection.query(
+        "INSERT INTO order_items (order_id, product_id, quantity, price_per_item) VALUES (?, ?, ?, ?)",
+        [newOrderId, item.id, item.quantity, item.price] // Gunakan harga asli per hari
+      )
+    );
+    await Promise.all(orderItemsQueries);
+
+    const grossAmount = totalAmount * rentDays;
+    const itemDetails = cartItems.map((item) => {
+      return {
+        id: item.id,
+        price: item.price * rentDays, 
+        quantity: item.quantity,
+        name: `${item.name.substring(0, 40)} (${rentDays} hari)`,
+      };
+    });
+
     let parameter = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: totalAmount,
+        gross_amount: grossAmount,
       },
       customer_details: {
         first_name: customerName,
         email: customerEmail,
       },
+      item_details: itemDetails,
     };
 
-    // 5. Buat transaksi Midtrans
     const transaction = await snap.createTransaction(parameter);
-    let transactionToken = transaction.token;
+
+    await connection.query("DELETE FROM cart_items WHERE user_id = ?", [
+      userId,
+    ]);
 
     await connection.commit();
-    res.json({ token: transactionToken, orderId: orderId });
+
+    res.json({ token: transaction.token, orderId: orderId });
   } catch (error) {
     await connection.rollback();
     console.error("Error saat proses order:", error);
@@ -197,10 +335,41 @@ app.post("/api/process-order", async (req, res) => {
   }
 });
 
-// APi webhook
+// === ENDPOINT DAFTAR PESANAN ===
+app.get("/api/orders", ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [orders] = await db.query(
+      `SELECT id, order_id, total_amount, status, created_at, rent_days 
+       FROM orders 
+       WHERE user_id = ? 
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    const detailedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const [items] = await db.query(
+          `SELECT p.name, oi.quantity, oi.price_per_item 
+         FROM order_items oi
+         JOIN products p ON oi.product_id = p.id
+         WHERE oi.order_id = ?`,
+          [order.id] 
+        );
+        return { ...order, items }; 
+      })
+    );
+
+    res.status(200).json(detailedOrders);
+  } catch (error) {
+    console.error("Error saat mengambil daftar pesanan:", error);
+    res.status(500).json({ error: "Gagal mengambil daftar pesanan." });
+  }
+});
+
+// === ENDPOINT WEBHOOK MIDTRANS ===
 app.post("/api/midtrans-notification", async (req, res) => {
   try {
-    // Gunakan fungsi notifikasi dari library midtrans-client untuk verifikasi
     const statusResponse = await snap.transaction.notification(req.body);
     let orderId = statusResponse.order_id;
     let transactionStatus = statusResponse.transaction_status;
@@ -210,45 +379,33 @@ app.post("/api/midtrans-notification", async (req, res) => {
       `Notifikasi untuk Order ID ${orderId}: Transaction status: ${transactionStatus}, Fraud status: ${fraudStatus}`
     );
 
-    // Logic untuk update database
     if (transactionStatus == "settlement" || transactionStatus == "capture") {
       if (fraudStatus == "accept") {
-        // Pembayaran berhasil.
-        // TODO 1: Update status di tabel `orders` menjadi 'paid'.
-        // TODO 2: Ambil item dari pesanan (perlu tabel order_items).
-        // TODO 3: Kurangi stok produk di tabel `products`.
-        // TODO 4: Kosongkan keranjang belanja pengguna.
-        await db.query("UPDATE orders SET status = ? WHERE order_id = ?", [
-          "paid",
-          orderId,
-        ]);
+        const midtransTransactionId = statusResponse.transaction_id;
+        await db.query(
+          "UPDATE orders SET status = ?, midtrans_transaction_id = ? WHERE order_id = ?",
+          ["paid", midtransTransactionId, orderId]
+        );
         console.log(`Pembayaran untuk order ${orderId} berhasil.`);
       }
-    } else if (transactionStatus == "pending") {
-      // Pembayaran masih pending (misal: transfer bank belum dibayar).
-      // Anda bisa mengabaikan atau mencatat log.
     } else if (
       transactionStatus == "deny" ||
       transactionStatus == "expire" ||
       transactionStatus == "cancel"
     ) {
-      // Pembayaran gagal.
-      // TODO: Update status di tabel `orders` menjadi 'failed' atau 'expired'.
       await db.query("UPDATE orders SET status = ? WHERE order_id = ?", [
         "failed",
         orderId,
       ]);
     }
-
-    // Beri respons 200 OK agar Midtrans tidak mengirim notifikasi berulang kali
     res.status(200).send("OK");
   } catch (error) {
-    console.error("Error saat menangani notifikasi Midtrans:", error);
+    console.error("Error saat menangani notifikasi Midtrans:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Jalankan server
+
 app.listen(port, () => {
-  console.log(`Server berjalan di http://localhost:${port}`);
+  console.log(`🚀 Server GoOutdoor berjalan di http://localhost:${port}`);
 });

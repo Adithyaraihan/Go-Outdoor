@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login - Go Outdoor</title>
+    <link rel="stylesheet" href="style-login.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="left-panel">
+        <div class="showcase-text">
+          <h2>Capturing Moments,</h2>
+          <h2>Creating Memories</h2>
+        </div>
+      </div>
+      <div class="right-panel">
+        <div class="login-container">
+          <h1>Welcome back!</h1>
+          <p class="subtitle">
+            Don't have an account? <a href="signup.html">Create one</a>
+          </p>
+          <form id="login-form">
+            <div class="input-group">
+              <label for="identifier">Email or Full Name</label>
+              <input type="text" id="identifier" name="identifier" required />
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+            <div class="options-group">
+              <a href="forgot-password.html" class="forgot-password"
+                >Forgot password?</a
+              >
+            </div>
+            <button type="submit" class="btn btn-primary">Log in</button>
+          </form>
+          <div class="separator"><span>Or log in with</span></div>
+          <div class="social-login">
+            <a href="/auth/google" class="btn btn-social">Google</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="login.js"></script>
+  </body>
+</html>

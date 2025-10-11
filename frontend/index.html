@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      type="text/javascript"
+      src="https://app.sandbox.midtrans.com/snap/snap.js"
+      data-client-key="Mid-client-CyvycMikxkL4YzXJ"
+    ></script>
+    <title>Rental - Go Outdoor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+
+  <body>
+    <!-- navbar -->
+    <nav class="navbar-rental">
+      <a href="#" class="navbar-logo">Go Outdoor</a>
+
+      <div class="navbar-nav">
+        <a href="about.html">About</a>
+        <a href="#">Rental</a>
+        <a href="contact.html">Contact</a>
+        <a href="pesanan.html">Pesanan</a>
+      </div>
+
+      <div class="navbar-extra">
+        <a
+          id="user-profile"
+          style="display: none; align-items: center; gap: 1rem"
+        ></a>
+        <a href="#" id="logout-button"><i data-feather="log-out"></i></a>
+        <a href="login.html" id="login-button"><i data-feather="user"></i></a>
+        <a href="#" id="shoping-cart"><i data-feather="shopping-cart"></i></a>
+        <a href="#" id="hamburger-menu"><i data-feather="menu"></i></a>
+      </div>
+
+      <!-- shooping cart start -->
+      <div class="shoping-cart">
+        <div class="cart-header">
+          <h1>Keranjang</h1>
+          <span class="close-cart-btn">&times;</span>
+        </div>
+        <div class="cart-items-container">
+          <div class="cart-item-placeholder">Keranjang kosong.</div>
+        </div>
+        <div class="cart-summary">
+          <div class="days-control">
+            <label for="rent-days">Jumlah Hari Sewa:</label>
+            <input type="number" id="rent-days" value="1" min="1" />
+          </div>
+          <h2>Total: <span id="total-price">Rp 0</span></h2>
+          <button class="btn-checkout" id="checkout-button">Checkout</button>
+        </div>
+      </div>
+      <!-- shooping cart end -->
+    </nav>
+    <!-- end navbar -->
+
+    <!-- section produk -->
+    <section class="produk">
+      <div class="produk-container"></div>
+    </section>
+
+    <!-- feather icons -->
+    <script src="script.js"></script>
+    <script>
+      feather.replace();
+    </script>
+  </body>
+</html>
