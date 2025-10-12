@@ -15,21 +15,42 @@ const MySQLStore = require("express-mysql-session")(session);
 const app = express();
 const port = process.env.PORT || 8080;
 
-const allowedOrigins = ["http://localhost:3000", "go-outdoor.vercel.app"];
+// PERBAIKAN 1: CORS configuration yang lebih baik
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://go-outdoor.vercel.app",
+  "https://your-production-domain.vercel.app", // tambahkan domain production sebenarnya
+];
 
-// MMIDDLEWARE
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Middleware untuk logging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-const db = mysql.createPool({
+// PERBAIKAN 2: Database connection dengan error handling yang lebih baik
+const dbConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -37,7 +58,22 @@ const db = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-});
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+};
+
+const db = mysql.createPool(dbConfig);
+
+// Test database connection
+db.getConnection()
+  .then((connection) => {
+    console.log("✅ Database connected successfully");
+    connection.release();
+  })
+  .catch((err) => {
+    console.error("❌ Database connection failed:", err);
+  });
 
 const sessionStore = new MySQLStore({
   host: process.env.DB_HOST,
@@ -55,6 +91,7 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   })
 );
@@ -62,11 +99,18 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-let snap = new midtransClient.Snap({
-  isProduction: false,
-  serverKey: process.env.MIDTRANS_SERVER_KEY,
-  clientKey: process.env.MIDTRANS_CLIENT_KEY,
-});
+// PERBAIKAN 3: Midtrans client dengan error handling
+let snap;
+try {
+  snap = new midtransClient.Snap({
+    isProduction: process.env.NODE_ENV === "production",
+    serverKey: process.env.MIDTRANS_SERVER_KEY,
+    clientKey: process.env.MIDTRANS_CLIENT_KEY,
+  });
+  console.log("✅ Midtrans client initialized");
+} catch (error) {
+  console.error("❌ Midtrans client initialization failed:", error);
+}
 
 passport.use(
   new GoogleStrategy(
@@ -174,6 +218,32 @@ const ensureAuthenticated = (req, res, next) => {
 
 const authRoutes = createAuthRoutes(db, passport);
 app.use("/auth", authRoutes);
+
+app.use((error, req, res, next) => {
+  console.error("Unhandled Error:", error);
+  res.status(500).json({
+    error: "Terjadi kesalahan internal server",
+    ...(process.env.NODE_ENV === "development" && { details: error.message }),
+  });
+});
+
+// PERBAIKAN 5: Health check endpoint
+app.get("/health", async (req, res) => {
+  try {
+    await db.query("SELECT 1");
+    res.status(200).json({
+      status: "OK",
+      database: "connected",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "ERROR",
+      database: "disconnected",
+      error: error.message,
+    });
+  }
+});
 
 // === ENDPOINT PRODUK ===
 app.get("/api/products", async (req, res) => {
@@ -424,10 +494,11 @@ app.post("/api/midtrans-notification", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.redirect("../index.html");
+app.use((req, res) => {
+  res.status(404).json({ error: "Endpoint tidak ditemukan" });
 });
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server GoOutdoor berjalan di port ${port}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
 });
