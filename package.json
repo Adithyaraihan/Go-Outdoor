@@ -1,5 +1,0 @@
-{
-  "dependencies": {
-    "express-mysql-session": "^3.0.3"
-  }
-}

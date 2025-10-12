@@ -23,7 +23,7 @@ document.body.appendChild(overlay);
 
 async function checkLoginStatus() {
   try {
-    const response = await fetch("/auth/profile");
+    const response = await fetch("https://go-outdoor-production.up.railway.app//auth/profile");
     if (response.ok) {
       AppState.currentUser = await response.json();
     } else {
@@ -65,7 +65,7 @@ function updateUIBasedOnLoginStatus() {
 
 async function fetchProducts() {
   try {
-    const response = await fetch("/api/products");
+    const response = await fetch("https://go-outdoor-production.up.railway.app/api/products");
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const products = await response.json();
     produkContainer.innerHTML = ""; 
@@ -102,7 +102,7 @@ async function fetchCartItems() {
   }
 
   try {
-    const response = await fetch("/api/cart");
+    const response = await fetch("https://go-outdoor-production.up.railway.app/api/cart");
     const cartItems = await response.json();
 
     cartItemsContainer.innerHTML = "";
@@ -172,7 +172,7 @@ const toggleOverlay = () => {
 async function handleLogout(e) {
   e.preventDefault();
   try {
-    await fetch("/auth/logout", { method: "POST" });
+    await fetch("https://go-outdoor-production.up.railway.app/auth/logout", { method: "POST" });
     AppState.currentUser = null;
     updateUIBasedOnLoginStatus();
     fetchCartItems(); // menampilkan pesan harus login dulu
@@ -196,7 +196,7 @@ async function handleAddToCart(e) {
 
   const productId = addToCartBtn.dataset.id;
   try {
-    const response = await fetch("/api/cart/add", {
+    const response = await fetch("https://go-outdoor-production.up.railway.app/api/cart/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ productId, quantity: 1 }),
@@ -252,7 +252,7 @@ async function handleCartInteraction(e) {
 
 async function updateCartItemQuantity(cartId, newQuantity) {
   try {
-    await fetch("/api/cart/update", {
+    await fetch("https://go-outdoor-production.up.railway.app/api/cart/update", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cartId, newQuantity }),
@@ -277,7 +277,7 @@ async function handleCheckout(e) {
   checkoutButton.textContent = "Memproses...";
 
   try {
-    const response = await fetch("/api/process-order", {
+    const response = await fetch("https://go-outdoor-production.up.railway.app/api/process-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

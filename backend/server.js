@@ -15,8 +15,18 @@ const MySQLStore = require("express-mysql-session")(session);
 const app = express();
 const port = process.env.PORT || 8080;
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://gooutdoor-frontend.vercel.app",
+];
+
 // MMIDDLEWARE
-app.use(cors());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "../frontend")));
@@ -416,6 +426,9 @@ app.post("/api/midtrans-notification", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.redirect("../index.html");
+});
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server GoOutdoor berjalan di port ${port}`);
