@@ -10,19 +10,19 @@ module.exports = function (db, passport) {
   const router = express.Router();
 
   router.get(
-    "auth/google",
+    "/google",
     passport.authenticate("google", { scope: ["profile", "email"] })
   );
 
   router.get(
-    "auth/google/callback",
+    "/google/callback",
     passport.authenticate("google", { failureRedirect: "/login.html" }),
     (req, res) => {
       res.redirect("/index.html");
     }
   );
 
-  router.post("auth/register", async (req, res) => {
+  router.post("/register", async (req, res) => {
     const { fullname, email, password } = req.body;
     if (!fullname || !email || !password) {
       return res.status(400).json({ message: "Semua kolom wajib diisi." });
@@ -96,7 +96,7 @@ module.exports = function (db, passport) {
     }
   });
 
-  router.post("auth/login", (req, res, next) => {
+  router.post("/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
         return next(err); 
@@ -115,7 +115,7 @@ module.exports = function (db, passport) {
     })(req, res, next);
   });
 
-  router.post("auth/forgot-password", async (req, res) => {
+  router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ message: "Email wajib diisi." });
@@ -148,7 +148,7 @@ module.exports = function (db, passport) {
     }
   });
 
-  router.post("auth/reset-password", async (req, res) => {
+  router.post("/reset-password", async (req, res) => {
     const { token, newPassword } = req.body;
     if (!token || !newPassword) {
       return res
@@ -185,7 +185,7 @@ module.exports = function (db, passport) {
     }
   });
 
-  router.post("auth/logout", (req, res, next) => {
+  router.post("/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) {
         return next(err);
@@ -208,7 +208,7 @@ module.exports = function (db, passport) {
       .json({ message: "Akses ditolak. Silakan login terlebih dahulu." });
   };
 
-  router.get("auth/profile", ensureAuthenticated, (req, res) => {
+  router.get("/profile", ensureAuthenticated, (req, res) => {
     const { password, ...userProfile } = req.user;
     res.status(200).json(userProfile);
   });
