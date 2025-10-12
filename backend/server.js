@@ -10,6 +10,7 @@ const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcryptjs");
 const midtransClient = require("midtrans-client");
 const createAuthRoutes = require("./authRoutes");
+const MySQLStore = require("express-mysql-session")(session);
 
 const app = express();
 const port = process.env.PORT;
