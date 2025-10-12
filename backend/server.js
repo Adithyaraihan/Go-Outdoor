@@ -416,9 +416,7 @@ app.post("/api/midtrans-notification", async (req, res) => {
   }
 });
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend", "index.html"));
-});
+
 app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server GoOutdoor berjalan di port ${port}`);
 });
