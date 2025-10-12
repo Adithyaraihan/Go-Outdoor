@@ -15,10 +15,7 @@ const MySQLStore = require("express-mysql-session")(session);
 const app = express();
 const port = process.env.PORT || 8080;
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://go-outdoor-6oz7q5p7g-adithyas-projects-cf6d8ac5.vercel.app/",
-];
+const allowedOrigins = ["http://localhost:3000", "go-outdoor.vercel.app"];
 
 // MMIDDLEWARE
 app.use(
