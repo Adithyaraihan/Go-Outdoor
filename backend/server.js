@@ -426,9 +426,6 @@ app.post("/api/midtrans-notification", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("GoOutdoor backend is running 🚀");
-});
 
 app.get("/", (req, res) => {
   res.redirect("../index.html");
