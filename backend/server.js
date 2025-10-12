@@ -12,7 +12,7 @@ const midtransClient = require("midtrans-client");
 const createAuthRoutes = require("./authRoutes");
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 app.use(cors());
 app.use(express.json());
@@ -39,10 +39,10 @@ let snap = new midtransClient.Snap({
 });
 
 const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "go_outdoor",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -407,5 +407,5 @@ app.post("/api/midtrans-notification", async (req, res) => {
 
 
 app.listen(port, () => {
-  console.log(`🚀 Server GoOutdoor berjalan di http://localhost:${port}`);
+  console.log(`🚀 Server GoOutdoor berjalan di http:// dengan port:${port}`);
 });
