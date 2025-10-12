@@ -23,7 +23,7 @@ document.body.appendChild(overlay);
 
 async function checkLoginStatus() {
   try {
-    const response = await fetch("https://go-outdoor-production.up.railway.app//auth/profile");
+    const response = await fetch("https://go-outdoor-production.up.railway.app/auth/profile");
     if (response.ok) {
       AppState.currentUser = await response.json();
     } else {
