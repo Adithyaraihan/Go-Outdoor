@@ -3,7 +3,7 @@ document.getElementById("forgot-form").addEventListener("submit", async (e) => {
   const email = document.getElementById("email").value;
 
   try {
-    const response = await fetch("/auth/forgot-password", {
+    const response = await fetch("https://go-outdoor-production.up.railway.app/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),

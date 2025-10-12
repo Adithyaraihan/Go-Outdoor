@@ -1,5 +1,3 @@
-const { default: Swal } = require("sweetalert2");
-
 document.addEventListener("DOMContentLoaded", () => {
   const verifyForm = document.getElementById("verify-form");
   const emailInput = document.getElementById("email");
@@ -16,11 +14,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const code = document.getElementById("code").value;
 
     try {
-      const response = await fetch("/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
-      });
+      const response = await fetch(
+        "https://go-outdoor-production.up.railway.app/auth/verify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code }),
+        }
+      );
       const data = await response.json();
       Swal.fire(data.message);
 

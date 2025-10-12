@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       try {
-        const response = await fetch("/auth/register", {
+        const response = await fetch("https://go-outdoor-production.up.railway.app/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fullname, email, password }),

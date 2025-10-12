@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchAndDisplayOrders() {
     try {
-      const response = await fetch("/api/orders");
+      const response = await fetch("https://go-outdoor-production.up.railway.app/api/orders");
 
       if (response.status === 401) {
         orderListContainer.innerHTML = `
