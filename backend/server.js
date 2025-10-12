@@ -13,7 +13,7 @@ const createAuthRoutes = require("./authRoutes");
 const MySQLStore = require("express-mysql-session")(session);
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 8080;
 
 // MMIDDLEWARE
 app.use(cors());
@@ -58,10 +58,6 @@ let snap = new midtransClient.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
-});
-
-app.get("/", (req, res) => {
-  res.send("GoOutdoor backend is running 🚀");
 });
 
 passport.use(
@@ -419,6 +415,11 @@ app.post("/api/midtrans-notification", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.get("/", (req, res) => {
+  res.send("GoOutdoor backend is running 🚀");
+});
+
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server GoOutdoor berjalan di port ${port}`);
