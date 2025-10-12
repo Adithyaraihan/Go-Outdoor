@@ -14,29 +14,11 @@ const createAuthRoutes = require("./authRoutes");
 const app = express();
 const port = process.env.PORT;
 
+// MMIDDLEWARE
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "../frontend")));
-
-app.use(
-  session({
-    secret: process.env.SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }, //ubah jika udah HTTPS
-  })
-);
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-
-let snap = new midtransClient.Snap({
-  isProduction: false,
-  serverKey: process.env.MIDTRANS_SERVER_KEY,
-  clientKey: process.env.MIDTRANS_CLIENT_KEY,
-});
 
 const db = mysql.createPool({
   host: process.env.DB_HOST,
@@ -48,6 +30,37 @@ const db = mysql.createPool({
   queueLimit: 0,
 });
 
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+});
+
+app.use(
+  session({
+    secret: process.env.SECRET,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+let snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
+});
+
+const authRoutes = createAuthRoutes(db, passport);
+app.use("/auth", authRoutes);
 
 passport.use(
   new GoogleStrategy(
@@ -152,9 +165,6 @@ const ensureAuthenticated = (req, res, next) => {
     .status(401)
     .json({ error: "Akses ditolak. Anda harus login terlebih dahulu." });
 };
-
-const authRoutes = createAuthRoutes(db, passport);
-app.use("/auth", authRoutes);
 
 // === ENDPOINT PRODUK ===
 app.get("/api/products", async (req, res) => {
@@ -299,7 +309,7 @@ app.post("/api/process-order", ensureAuthenticated, async (req, res) => {
     const itemDetails = cartItems.map((item) => {
       return {
         id: item.id,
-        price: item.price * rentDays, 
+        price: item.price * rentDays,
         quantity: item.quantity,
         name: `${item.name.substring(0, 40)} (${rentDays} hari)`,
       };
@@ -354,9 +364,9 @@ app.get("/api/orders", ensureAuthenticated, async (req, res) => {
          FROM order_items oi
          JOIN products p ON oi.product_id = p.id
          WHERE oi.order_id = ?`,
-          [order.id] 
+          [order.id]
         );
-        return { ...order, items }; 
+        return { ...order, items };
       })
     );
 
@@ -405,7 +415,10 @@ app.post("/api/midtrans-notification", async (req, res) => {
   }
 });
 
-
 app.listen(port, () => {
-  console.log(`🚀 Server GoOutdoor berjalan di http:// dengan port:${port}`);
+  console.log(
+    `🚀 Server GoOutdoor berjalan di ${
+      process.env.BASE_URL || "localhost"
+    }:${port}`
+  );
 });
