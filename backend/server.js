@@ -17,8 +17,7 @@ const port = process.env.PORT || 8080;
 
 const allowedOrigins = [
   "http://localhost:3000",
-  // "https://go-outdoor-pv2o96n5r-adithyas-projects-cf6d8ac5.vercel.app",
-  "https://go-outdoor-e47n4qxfd-adithyas-projects-cf6d8ac5.vercel.app/",
+  "https://go-outdoor-6oz7q5p7g-adithyas-projects-cf6d8ac5.vercel.app/",
 ];
 
 // MMIDDLEWARE
