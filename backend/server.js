@@ -60,9 +60,9 @@ let snap = new midtransClient.Snap({
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-// app.get("/", (req, res) => {
-//   res.send("GoOutdoor backend is running 🚀");
-// });
+app.get("/", (req, res) => {
+  res.send("GoOutdoor backend is running 🚀");
+});
 
 passport.use(
   new GoogleStrategy(
