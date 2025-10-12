@@ -17,7 +17,8 @@ const port = process.env.PORT || 8080;
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://go-outdoor-pv2o96n5r-adithyas-projects-cf6d8ac5.vercel.app",
+  // "https://go-outdoor-pv2o96n5r-adithyas-projects-cf6d8ac5.vercel.app",
+  "https://go-outdoor-e47n4qxfd-adithyas-projects-cf6d8ac5.vercel.app/",
 ];
 
 // MMIDDLEWARE
@@ -425,7 +426,6 @@ app.post("/api/midtrans-notification", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 app.get("/", (req, res) => {
   res.redirect("../index.html");
