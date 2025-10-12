@@ -60,8 +60,9 @@ let snap = new midtransClient.Snap({
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-const authRoutes = createAuthRoutes(db, passport);
-app.use("/auth", authRoutes);
+// app.get("/", (req, res) => {
+//   res.send("GoOutdoor backend is running 🚀");
+// });
 
 passport.use(
   new GoogleStrategy(
@@ -166,6 +167,9 @@ const ensureAuthenticated = (req, res, next) => {
     .status(401)
     .json({ error: "Akses ditolak. Anda harus login terlebih dahulu." });
 };
+
+const authRoutes = createAuthRoutes(db, passport);
+app.use("/auth", authRoutes);
 
 // === ENDPOINT PRODUK ===
 app.get("/api/products", async (req, res) => {
@@ -416,10 +420,6 @@ app.post("/api/midtrans-notification", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(
-    `🚀 Server GoOutdoor berjalan di ${
-      process.env.BASE_URL || "localhost"
-    }:${port}`
-  );
+app.listen(port, "0.0.0.0", () => {
+  console.log(`🚀 Server GoOutdoor berjalan di port ${port}`);
 });
