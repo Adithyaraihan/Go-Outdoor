@@ -14,13 +14,62 @@ module.exports = function (db, passport) {
     passport.authenticate("google", { scope: ["profile", "email"] })
   );
 
+  // router.get(
+  //   "/google/callback",
+  //   passport.authenticate("google", { failureRedirect: "/login.html" }),
+  //   (req, res) => {
+  //     res.redirect("/index.html");
+  //   }
+  // );
+
   router.get(
     "/google/callback",
-    passport.authenticate("google", { failureRedirect: "/login.html" }),
+    passport.authenticate("google", {
+      failureRedirect: process.env.FRONTEND_URL
+        ? `${process.env.FRONTEND_URL}/login.html`
+        : "/login.html",
+    }),
     (req, res) => {
-      res.redirect("/index.html");
+      res.redirect(
+        process.env.FRONTEND_URL
+          ? `${process.env.FRONTEND_URL}/index.html`
+          : "/index.html"
+      );
     }
   );
+
+  // router.post("/register", async (req, res) => {
+  //   const { fullname, email, password } = req.body;
+  //   if (!fullname || !email || !password) {
+  //     return res.status(400).json({ message: "Semua kolom wajib diisi." });
+  //   }
+
+  //   try {
+  //     const hashedPassword = await bcrypt.hash(password, 10);
+  //     const verificationCode = Math.floor(
+  //       100000 + Math.random() * 900000
+  //     ).toString();
+  //     const expirationTime = new Date(Date.now() + 15 * 60 * 1000); // 15 menit
+
+  //     await db.query(
+  //       "INSERT INTO users (fullname, email, password, verification_code, code_expires_at) VALUES (?, ?, ?, ?, ?)",
+  //       [fullname, email, hashedPassword, verificationCode, expirationTime]
+  //     );
+
+  //     await sendVerificationEmail(email, verificationCode);
+  //     res.status(201).json({
+  //       message: "Registrasi berhasil! Silakan cek email untuk verifikasi.",
+  //     });
+  //   } catch (err) {
+  //     if (err.code === "ER_DUP_ENTRY") {
+  //       return res.status(409).json({ message: "Email sudah terdaftar." });
+  //     }
+  //     console.error("Error saat registrasi:", err);
+  //     return res
+  //       .status(500)
+  //       .json({ message: "Terjadi kesalahan pada server." });
+  //   }
+  // });
 
   router.post("/register", async (req, res) => {
     const { fullname, email, password } = req.body;
@@ -99,7 +148,7 @@ module.exports = function (db, passport) {
   router.post("/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
-        return next(err); 
+        return next(err);
       }
       if (!user) {
         return res.status(401).json({ message: info.message });
@@ -114,6 +163,39 @@ module.exports = function (db, passport) {
       });
     })(req, res, next);
   });
+
+  // router.post("/forgot-password", async (req, res) => {
+  //   const { email } = req.body;
+  //   if (!email) {
+  //     return res.status(400).json({ message: "Email wajib diisi." });
+  //   }
+
+  //   try {
+  //     const token = crypto.randomBytes(20).toString("hex");
+  //     const expirationTime = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
+
+  //     const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
+  //       email,
+  //     ]);
+
+  //     if (users.length > 0) {
+  //       const user = users[0];
+  //       await db.query(
+  //         "UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?",
+  //         [token, expirationTime, user.id]
+  //       );
+  //       await sendPasswordResetEmail(user.email, token);
+  //     }
+
+  //     res.status(200).json({
+  //       message:
+  //         "Jika email Anda terdaftar, link untuk reset password telah dikirim.",
+  //     });
+  //   } catch (err) {
+  //     console.error("Error saat lupa password:", err);
+  //     res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  //   }
+  // });
 
   router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;

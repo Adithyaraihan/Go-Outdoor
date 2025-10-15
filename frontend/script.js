@@ -6,14 +6,14 @@ const AppState = {
 // Configuration
 const CONFIG = {
   BASE_URL: "https://go-outdoor-production.up.railway.app",
-  DEFAULT_RENT_DAYS: 1
+  DEFAULT_RENT_DAYS: 1,
 };
 
 // Custom Error Class
 class ApiError extends Error {
   constructor(message, status, details) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.details = details;
   }
@@ -24,9 +24,9 @@ const apiClient = {
   async request(endpoint, options = {}) {
     const url = `${CONFIG.BASE_URL}${endpoint}`;
     const config = {
-      credentials: 'include',
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
@@ -34,7 +34,7 @@ const apiClient = {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
@@ -52,8 +52,8 @@ const apiClient = {
         throw error;
       }
       throw new ApiError(
-        'Network error: Tidak dapat terhubung ke server', 
-        0, 
+        "Network error: Tidak dapat terhubung ke server",
+        0,
         error.message
       );
     }
@@ -65,21 +65,21 @@ const apiClient = {
 
   post(endpoint, data) {
     return this.request(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   put(endpoint, data) {
     return this.request(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   },
 
   delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
-  }
+    return this.request(endpoint, { method: "DELETE" });
+  },
 };
 
 // DOM Elements
@@ -107,11 +107,11 @@ document.body.appendChild(overlay);
 async function checkLoginStatus() {
   try {
     AppState.currentUser = await apiClient.get("/auth/profile");
-    console.log('User logged in:', AppState.currentUser.fullname);
+    console.log("User logged in:", AppState.currentUser.fullname);
   } catch (error) {
     AppState.currentUser = null;
     if (error.status !== 401) {
-      console.warn('Login check failed:', error.message);
+      console.warn("Login check failed:", error.message);
     }
   }
   updateUIBasedOnLoginStatus();
@@ -119,7 +119,7 @@ async function checkLoginStatus() {
 
 function updateUIBasedOnLoginStatus() {
   const { userProfileElement, loginButtonElement, logoutButton } = elements;
-  
+
   if (AppState.currentUser) {
     if (userProfileElement) {
       userProfileElement.innerHTML = `
@@ -129,7 +129,7 @@ function updateUIBasedOnLoginStatus() {
         </a>`;
       userProfileElement.style.display = "flex";
     }
-    
+
     if (loginButtonElement) loginButtonElement.style.display = "none";
     if (logoutButton) {
       logoutButton.style.display = "flex";
@@ -146,32 +146,37 @@ function updateUIBasedOnLoginStatus() {
 // Product Management
 async function fetchProducts() {
   const { produkContainer } = elements;
-  
+
   if (!produkContainer) {
-    console.error('Produk container not found');
+    console.error("Produk container not found");
     return;
   }
 
   try {
     produkContainer.innerHTML = '<div class="loading">Memuat produk...</div>';
     const products = await apiClient.get("/api/products");
-    
+
     produkContainer.innerHTML = "";
-    
+
     if (products.length === 0) {
-      produkContainer.innerHTML = '<div class="no-products">Tidak ada produk tersedia.</div>';
+      produkContainer.innerHTML =
+        '<div class="no-products">Tidak ada produk tersedia.</div>';
       return;
     }
-    
+
     products.forEach((product) => {
       const card = document.createElement("div");
       card.classList.add("card");
       card.innerHTML = `
         <img src="${product.image}" alt="${product.name}" loading="lazy">
         <h3>${product.name}</h3>
-        <p class="harga">Rp ${parseFloat(product.price).toLocaleString("id-ID")} / hari</p>
+        <p class="harga">Rp ${parseFloat(product.price).toLocaleString(
+          "id-ID"
+        )} / hari</p>
         <div class="card-action">
-          <button class="btn-cart" data-id="${product.id}" data-stock="${product.stock}">
+          <button class="btn-cart" data-id="${product.id}" data-stock="${
+        product.stock
+      }">
             Add to cart
           </button>
         </div>
@@ -192,7 +197,7 @@ async function fetchProducts() {
 // Cart Management
 async function fetchCartItems() {
   const { cartItemsContainer, checkoutButton } = elements;
-  
+
   if (!cartItemsContainer) return;
 
   if (!AppState.currentUser) {
@@ -208,7 +213,8 @@ async function fetchCartItems() {
   }
 
   try {
-    cartItemsContainer.innerHTML = '<div class="loading">Memuat keranjang...</div>';
+    cartItemsContainer.innerHTML =
+      '<div class="loading">Memuat keranjang...</div>';
     const cartItems = await apiClient.get("/api/cart");
     renderCartItems(cartItems);
   } catch (error) {
@@ -224,7 +230,7 @@ async function fetchCartItems() {
 
 function renderCartItems(cartItems) {
   const { cartItemsContainer, checkoutButton } = elements;
-  
+
   if (!cartItemsContainer) return;
 
   cartItemsContainer.innerHTML = "";
@@ -240,7 +246,7 @@ function renderCartItems(cartItems) {
     cartItems.forEach((item) => {
       const itemPrice = parseFloat(item.price);
       AppState.cartTotalPrice += itemPrice * item.quantity;
-      
+
       const cartItemDiv = document.createElement("div");
       cartItemDiv.classList.add("cart-item");
       cartItemDiv.innerHTML = `
@@ -249,12 +255,20 @@ function renderCartItems(cartItems) {
           <h3>${item.name}</h3>
           <div class="item-price">Rp ${itemPrice.toLocaleString("id-ID")}</div>
           <div class="quantity-control">
-            <button class="btn-qty btn-minus" data-id="${item.cartId}">-</button>
-            <input type="number" class="item-quantity" value="${item.quantity}" readonly>
-            <button class="btn-qty btn-plus" data-id="${item.cartId}" data-stock="${item.stock}">+</button>
+            <button class="btn-qty btn-minus" data-id="${
+              item.cartId
+            }">-</button>
+            <input type="number" class="item-quantity" value="${
+              item.quantity
+            }" readonly>
+            <button class="btn-qty btn-plus" data-id="${
+              item.cartId
+            }" data-stock="${item.stock}">+</button>
           </div>
         </div>
-        <i data-feather="trash-2" class="remove-item btn-remove" data-id="${item.cartId}"></i>
+        <i data-feather="trash-2" class="remove-item btn-remove" data-id="${
+          item.cartId
+        }"></i>
       `;
       cartItemsContainer.appendChild(cartItemDiv);
     });
@@ -266,7 +280,7 @@ function renderCartItems(cartItems) {
 // Price Calculation
 function updateFinalPrice() {
   const { rentDaysInput, totalPriceElement } = elements;
-  
+
   if (!rentDaysInput || !totalPriceElement) return;
 
   const days = parseInt(rentDaysInput.value) || CONFIG.DEFAULT_RENT_DAYS;
@@ -277,24 +291,26 @@ function updateFinalPrice() {
 // Overlay Management
 function toggleOverlay() {
   const { cart, navbarNav } = elements;
-  const isActive = cart?.classList.contains("active") || navbarNav?.classList.contains("active");
+  const isActive =
+    cart?.classList.contains("active") ||
+    navbarNav?.classList.contains("active");
   overlay.classList.toggle("active", isActive);
 }
 
 // Event Handlers
 async function handleLogout(e) {
   if (e) e.preventDefault();
-  
+
   try {
     const result = await Swal.fire({
-      title: 'Logout',
-      text: 'Apakah Anda yakin ingin logout?',
-      icon: 'question',
+      title: "Logout",
+      text: "Apakah Anda yakin ingin logout?",
+      icon: "question",
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Ya, Logout',
-      cancelButtonText: 'Batal'
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Ya, Logout",
+      cancelButtonText: "Batal",
     });
 
     if (result.isConfirmed) {
@@ -302,11 +318,11 @@ async function handleLogout(e) {
       AppState.currentUser = null;
       updateUIBasedOnLoginStatus();
       fetchCartItems();
-      await Swal.fire('Berhasil!', 'Anda berhasil logout.', 'success');
+      await Swal.fire("Berhasil!", "Anda berhasil logout.", "success");
     }
   } catch (error) {
     console.error("Gagal logout:", error);
-    await Swal.fire('Error', 'Gagal logout. Coba lagi.', 'error');
+    await Swal.fire("Error", "Gagal logout. Coba lagi.", "error");
   }
 }
 
@@ -316,10 +332,10 @@ async function handleAddToCart(e) {
 
   if (!AppState.currentUser) {
     await Swal.fire({
-      icon: 'warning',
-      title: 'Login Required',
-      text: 'Anda harus login terlebih dahulu untuk menambahkan item ke keranjang!',
-      confirmButtonText: 'OK'
+      icon: "warning",
+      title: "Login Required",
+      text: "Anda harus login terlebih dahulu untuk menambahkan item ke keranjang!",
+      confirmButtonText: "OK",
     });
     return;
   }
@@ -328,16 +344,20 @@ async function handleAddToCart(e) {
   const stock = parseInt(addToCartBtn.dataset.stock);
 
   try {
-    const response = await apiClient.post("/api/cart/add", { 
-      productId, 
-      quantity: 1 
+    const response = await apiClient.post("/api/cart/add", {
+      productId,
+      quantity: 1,
     });
-    
-    await Swal.fire('Berhasil!', response.message, 'success');
+
+    await Swal.fire("Berhasil!", response.message, "success");
     fetchCartItems();
   } catch (error) {
     console.error("Gagal menambahkan produk:", error);
-    await Swal.fire('Error', error.message || 'Gagal menambahkan produk ke keranjang', 'error');
+    await Swal.fire(
+      "Error",
+      error.message || "Gagal menambahkan produk ke keranjang",
+      "error"
+    );
   }
 }
 
@@ -354,12 +374,16 @@ async function handleCartInteraction(e) {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Ya, Hapus!",
-      cancelButtonText: "Batal"
+      cancelButtonText: "Batal",
     });
 
     if (result.isConfirmed) {
       await updateCartItemQuantity(cartId, 0);
-      await Swal.fire("Terhapus!", "Item berhasil dihapus dari keranjang.", "success");
+      await Swal.fire(
+        "Terhapus!",
+        "Item berhasil dihapus dari keranjang.",
+        "success"
+      );
     }
     return;
   }
@@ -368,13 +392,13 @@ async function handleCartInteraction(e) {
   if (quantityControl) {
     const input = quantityControl.querySelector(".item-quantity");
     const currentQuantity = parseInt(input.value);
-    
+
     if (target.classList.contains("btn-plus")) {
       const stock = parseInt(target.dataset.stock);
       if (currentQuantity < stock) {
         await updateCartItemQuantity(cartId, currentQuantity + 1);
       } else {
-        await Swal.fire('Info', `Stok hanya tersisa ${stock} item.`, 'info');
+        await Swal.fire("Info", `Stok hanya tersisa ${stock} item.`, "info");
       }
     } else if (target.classList.contains("btn-minus")) {
       await updateCartItemQuantity(cartId, currentQuantity - 1);
@@ -388,32 +412,32 @@ async function updateCartItemQuantity(cartId, newQuantity) {
     fetchCartItems();
   } catch (error) {
     console.error("Gagal memperbarui kuantitas:", error);
-    await Swal.fire('Error', 'Gagal memperbarui kuantitas item', 'error');
+    await Swal.fire("Error", "Gagal memperbarui kuantitas item", "error");
   }
 }
 
 async function handleCheckout(e) {
   e.preventDefault();
-  
+
   const { checkoutButton, rentDaysInput } = elements;
-  
+
   if (!AppState.currentUser) {
     await Swal.fire({
-      icon: 'warning',
-      title: 'Sesi Habis',
-      text: 'Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.',
-      confirmButtonText: 'Login'
+      icon: "warning",
+      title: "Sesi Habis",
+      text: "Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.",
+      confirmButtonText: "Login",
     });
     return;
   }
 
   const rentDays = parseInt(rentDaysInput.value) || CONFIG.DEFAULT_RENT_DAYS;
-  
+
   if (rentDays < 1) {
     await Swal.fire({
-      icon: 'error',
-      title: 'Hari Sewa Tidak Valid',
-      text: 'Minimal hari sewa adalah 1 hari.',
+      icon: "error",
+      title: "Hari Sewa Tidak Valid",
+      text: "Minimal hari sewa adalah 1 hari.",
     });
     return;
   }
@@ -434,10 +458,9 @@ async function handleCheckout(e) {
     });
 
     await processPayment(result);
-
   } catch (error) {
     console.error("Error saat checkout:", error);
-    
+
     let errorMessage = "Terjadi kesalahan saat proses checkout";
     if (error instanceof ApiError) {
       errorMessage = error.message;
@@ -458,29 +481,29 @@ async function handleCheckout(e) {
 async function processPayment(paymentData) {
   return new Promise((resolve, reject) => {
     if (!window.snap) {
-      reject(new Error('Payment gateway not loaded'));
+      reject(new Error("Payment gateway not loaded"));
       return;
     }
 
     window.snap.pay(paymentData.token, {
-      onSuccess: function(result) {
+      onSuccess: function (result) {
         Swal.fire("Sukses!", "Pembayaran berhasil!", "success");
         fetchCartItems();
         fetchProducts();
         resolve(result);
       },
-      onPending: function(result) {
+      onPending: function (result) {
         Swal.fire("Pending", "Menunggu pembayaran Anda.", "info");
         fetchCartItems();
         resolve(result);
       },
-      onError: function(result) {
+      onError: function (result) {
         Swal.fire("Gagal", "Pembayaran gagal!", "error");
-        reject(new Error('Payment failed'));
+        reject(new Error("Payment failed"));
       },
-      onClose: function() {
+      onClose: function () {
         Swal.fire("Info", "Anda menutup jendela pembayaran.", "info");
-        reject(new Error('Payment window closed'));
+        reject(new Error("Payment window closed"));
       },
     });
   });
@@ -489,26 +512,26 @@ async function processPayment(paymentData) {
 // App Initialization
 async function initializeApp() {
   try {
-    console.log('Initializing app...');
+    console.log("Initializing app...");
     await checkLoginStatus();
     await fetchProducts();
     setupEventListeners();
-    console.log('App initialized successfully');
+    console.log("App initialized successfully");
   } catch (error) {
-    console.error('Failed to initialize app:', error);
+    console.error("Failed to initialize app:", error);
     showInitializationError();
   }
 }
 
 function setupEventListeners() {
-  const { 
-    hamburger, 
-    shoppingCartBtn, 
-    closeCartBtn, 
-    produkContainer, 
-    cart, 
-    rentDaysInput, 
-    checkoutButton 
+  const {
+    hamburger,
+    shoppingCartBtn,
+    closeCartBtn,
+    produkContainer,
+    cart,
+    rentDaysInput,
+    checkoutButton,
   } = elements;
 
   try {
@@ -571,14 +594,13 @@ function setupEventListeners() {
     if (checkoutButton) {
       checkoutButton.addEventListener("click", handleCheckout);
     }
-
   } catch (error) {
-    console.error('Error setting up event listeners:', error);
+    console.error("Error setting up event listeners:", error);
   }
 }
 
 function showInitializationError() {
-  const mainContainer = document.querySelector('main') || document.body;
+  const mainContainer = document.querySelector("main") || document.body;
   mainContainer.innerHTML = `
     <div class="initialization-error" style="
       display: flex;
@@ -607,12 +629,12 @@ function showInitializationError() {
 }
 
 // Global error handlers
-window.addEventListener('error', (event) => {
-  console.error('Global error:', event.error);
+window.addEventListener("error", (event) => {
+  console.error("Global error:", event.error);
 });
 
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled promise rejection:", event.reason);
 });
 
 // Make functions available globally for retry buttons
@@ -620,14 +642,14 @@ window.fetchProducts = fetchProducts;
 window.fetchCartItems = fetchCartItems;
 
 // Initialize app when DOM is loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeApp);
 } else {
   initializeApp();
 }
 
 // Add some basic styles for loading and error states
-const style = document.createElement('style');
+const style = document.createElement("style");
 style.textContent = `
   .loading {
     text-align: center;

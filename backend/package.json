@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "go-outdoor-backend",
   "version": "1.0.0",
   "main": "script.js",
   "scripts": {

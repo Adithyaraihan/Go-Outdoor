@@ -19,8 +19,22 @@ const sendVerificationEmail = async (email, code) => {
   await transporter.sendMail(mailOptions);
 };
 
+// const sendPasswordResetEmail = async (email, token) => {
+//   const resetLink = `https://pat-uncivilizable-graham.ngrok-free.dev/reset-password.html?token=${token}`;
+//   const mailOptions = {
+//     from: `"Go Outdoor" <${process.env.EMAIL_USER}>`,
+//     to: email,
+//     subject: "Permintaan Reset Password",
+//     html: `<h1>Anda Meminta Reset Password</h1><p>Klik link di bawah untuk mengatur ulang password. Link ini hanya berlaku selama 1 jam.</p><a href="${resetLink}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Reset Password</a><p>Jika Anda tidak meminta ini, abaikan email ini.</p>`,
+//   };
+//   await transporter.sendMail(mailOptions);
+// };
+
 const sendPasswordResetEmail = async (email, token) => {
-  const resetLink = `https://pat-uncivilizable-graham.ngrok-free.dev/reset-password.html?token=${token}`;
+  // Gunakan BASE_URL dari environment variable atau default ke localhost
+  const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+  const resetLink = `${baseUrl}/reset-password.html?token=${token}`;
+
   const mailOptions = {
     from: `"Go Outdoor" <${process.env.EMAIL_USER}>`,
     to: email,
